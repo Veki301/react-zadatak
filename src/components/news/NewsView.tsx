@@ -3,12 +3,8 @@ import React, { useMemo, useState } from 'react';
 import { useQuery } from 'react-query';
 import { INews } from '../../model/news/INews';
 import { fetchNews } from '../../util/api';
-import {
-  getCategorizedNewsMap,
-  getCategoryLabel,
-} from '../../util/categoryUtils';
+import { getCategorizedNewsMap } from '../../util/categoryUtils';
 import { filterCategory, searchList } from '../../util/filter';
-import DeleteDropdown from '../common/DeleteDropdown';
 import LabeledNumberDisplay from '../common/LabeledNumberDisplay';
 import NewsList from './list/NewsList';
 import NewsListFilter from './list/NewsListFilter';
@@ -54,18 +50,7 @@ const NewsView: React.FC<INewsViewOwnProps> = (props) => {
     return getCategorizedNewsMap(news);
   }, [news]);
 
-  const getDropdownOptions = () => {
-    return categories
-      ? Object.keys(categories).map((category) => {
-          return {
-            id: category,
-            name: getCategoryLabel(category),
-          };
-        })
-      : [];
-  };
-
-  const getDisplayedNews = (): INews[] => {
+  const displayedNews = useMemo(() => {
     let filteredNews = news;
     if (query.filter) {
       filteredNews = filterCategory(filteredNews, query.filter as string);
@@ -74,18 +59,22 @@ const NewsView: React.FC<INewsViewOwnProps> = (props) => {
       filteredNews = searchList(filteredNews, query.query as string);
     }
     return filteredNews;
-  };
+  }, [query, news]);
 
   return (
     <React.Fragment>
-      <NewsListFilter categories={categories} news={news} onRefetch={refetch} />
-      <LabeledNumberDisplay label={'Total articles:'} number={news.length} />
-      <DeleteDropdown
-        dropdownOptions={getDropdownOptions()}
-        onDelete={handleDeleteCategory}
+      <NewsListFilter
+        categories={categories}
+        news={news}
+        onRefetch={refetch}
+        onDeleteCategory={handleDeleteCategory}
       />
-      <hr />
-      <NewsList onDelete={handleDeleteArticle} news={getDisplayedNews()} />
+      <LabeledNumberDisplay
+        prefix={'Currently showing'}
+        number={displayedNews.length}
+        suffix={'articles'}
+      />
+      <NewsList onDelete={handleDeleteArticle} news={displayedNews} />
     </React.Fragment>
   );
 };

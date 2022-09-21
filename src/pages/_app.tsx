@@ -7,6 +7,7 @@ import {
   DehydratedState,
 } from 'react-query';
 import AppLayout from '../components/common/AppLayout';
+import { GlobalStyle } from '../styles/GlobalStyle';
 
 // using function here because dehydratedState is not inferred when const ??
 function App({
@@ -18,6 +19,7 @@ function App({
   return (
     <QueryClientProvider client={queryClient}>
       <Hydrate state={pageProps.dehydratedState}>
+        <GlobalStyle />
         <AppLayout>
           <Component {...pageProps} />
         </AppLayout>
