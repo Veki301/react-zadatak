@@ -31,14 +31,24 @@ const NewsView: React.FC<INewsViewOwnProps> = (props) => {
     },
   });
 
+  // throw new Error();
+
+  if (error) {
+    throw new Error(error);
+  }
+
   const [news, setNews] = useState(data || []);
 
   const handleDeleteArticle = (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this article?'))
+      return;
     const newArticles = news.filter((article) => article.slug !== id);
     setNews(newArticles);
   };
 
   const handleDeleteCategory = (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this category?'))
+      return;
     const filteredNews = news.filter(
       (article) => article.post_category_id !== id
     );
