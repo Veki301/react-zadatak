@@ -1,17 +1,29 @@
-import { AppProps } from "next/app";
-import { QueryClient, QueryClientProvider } from "react-query";
-import AppLayout from "../components/common/AppLayout";
+import { AppProps } from 'next/app';
+import { useState } from 'react';
+import {
+  Hydrate,
+  QueryClient,
+  QueryClientProvider,
+  DehydratedState,
+} from 'react-query';
+import AppLayout from '../components/common/AppLayout';
 
-const reactQueryClient = new QueryClient();
+// using function here because dehydratedState is not inferred when const ??
+function App({
+  Component,
+  pageProps,
+}: AppProps<{ dehydratedState: DehydratedState }>) {
+  const [queryClient] = useState(() => new QueryClient());
 
-const App: React.FC<AppProps> = ({Component, pageProps}: AppProps) => {
-    return (
-    <QueryClientProvider client={reactQueryClient}>
+  return (
+    <QueryClientProvider client={queryClient}>
+      <Hydrate state={pageProps.dehydratedState}>
         <AppLayout>
-            <Component {...pageProps} />
+          <Component {...pageProps} />
         </AppLayout>
+      </Hydrate>
     </QueryClientProvider>
-    );
+  );
 }
 
 export default App;

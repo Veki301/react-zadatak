@@ -1,6 +1,13 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/router';
+import React, { useMemo, useState } from 'react';
+import { useQuery } from 'react-query';
 import { INews } from '../../model/news/INews';
-import { getCategorizedNewsMap, getCategoryLabel } from '../../util/categoryUtils';
+import { fetchNews } from '../../util/api';
+import {
+  getCategorizedNewsMap,
+  getCategoryLabel,
+} from '../../util/categoryUtils';
+import { filterCategory, searchList } from '../../util/filter';
 import DeleteDropdown from '../common/DeleteDropdown';
 import LabeledNumberDisplay from '../common/LabeledNumberDisplay';
 import NewsList from './list/NewsList';
@@ -14,69 +21,73 @@ import NewsListFilter from './list/NewsListFilter';
 //  Interfaces  //
 //////////////////
 
-export interface INewsViewOwnProps {
-    news: INews[];
-    allNews?: INews[];
-}
+export interface INewsViewOwnProps {}
 
 //////////////////
 //  Component   //
 //////////////////
 
 const NewsView: React.FC<INewsViewOwnProps> = (props) => {
-    const [displayedNews, setDisplayedNews] = useState(props.news);
-    const [allNews, setAllNews] = useState(props.allNews);
+  const { query } = useRouter();
+  const { isLoading, error, data, refetch } = useQuery(['news'], fetchNews, {
+    onSuccess: (data: INews[]) => {
+      setNews(data);
+    },
+  });
 
-    useEffect(() => {
-        setDisplayedNews(props.news)
-    }, [props.news]);
+  const [news, setNews] = useState(data || []);
 
-    useEffect(() => {
-        if (!props.allNews) return;
-        setAllNews(props.allNews);
-    }, [props.allNews]);
-    
-    const handleRefetch = () => {
-        setAllNews(props.allNews);
-    }
+  const handleDeleteArticle = (id: string) => {
+    const newArticles = news.filter((article) => article.slug !== id);
+    setNews(newArticles);
+  };
 
-    const handleDeleteArticle = (id: string) => {
-        const newArticles = displayedNews.filter((article) => article.slug !== id);
-        setDisplayedNews(newArticles);
-    }
-
-    const handleDeleteCategory = (id: string) => {
-        const filteredAllNews = allNews?.filter((article) => article.post_category_id !== id);
-        const filteredDisplayedNews = displayedNews.filter((article) => article.post_category_id !== id);
-        if (filteredAllNews) {
-            setAllNews(filteredAllNews);
-        }
-        setDisplayedNews(filteredDisplayedNews);
-    }
-
-    const categories = useMemo(() => {
-        if(!allNews) return;
-        return getCategorizedNewsMap(allNews);
-    }, [allNews]);
-
-    const getDropdownOptions = () => {
-        return categories ? Object.keys(categories).map((category) => {
-            return {
-                id: category,
-                name: getCategoryLabel(category)
-            }
-        }) : [];
-    }
-
-    return (
-        <React.Fragment>
-            <NewsListFilter categories={categories} news={allNews} onRefetch={handleRefetch} />
-            <LabeledNumberDisplay label={'Total articles:'} number={displayedNews.length} />
-            <DeleteDropdown dropdownOptions={getDropdownOptions()} onDelete={handleDeleteCategory} />
-            <hr />
-            <NewsList onDelete={handleDeleteArticle} news={displayedNews} />
-        </React.Fragment>
+  const handleDeleteCategory = (id: string) => {
+    const filteredNews = news.filter(
+      (article) => article.post_category_id !== id
     );
-}
+    setNews(filteredNews);
+  };
+
+  const categories = useMemo(() => {
+    if (!news) return;
+    return getCategorizedNewsMap(news);
+  }, [news]);
+
+  const getDropdownOptions = () => {
+    return categories
+      ? Object.keys(categories).map((category) => {
+          return {
+            id: category,
+            name: getCategoryLabel(category),
+          };
+        })
+      : [];
+  };
+
+  const getDisplayedNews = (): INews[] => {
+    let filteredNews = news;
+    if (query.filter) {
+      filteredNews = filterCategory(filteredNews, query.filter as string);
+    }
+    if (query.query) {
+      filteredNews = searchList(filteredNews, query.query as string);
+    }
+    return filteredNews;
+  };
+
+  return (
+    <React.Fragment>
+      <NewsListFilter categories={categories} news={news} onRefetch={refetch} />
+      <LabeledNumberDisplay label={'Total articles:'} number={news.length} />
+      <DeleteDropdown
+        dropdownOptions={getDropdownOptions()}
+        onDelete={handleDeleteCategory}
+      />
+      <hr />
+      <NewsList onDelete={handleDeleteArticle} news={getDisplayedNews()} />
+    </React.Fragment>
+  );
+};
 
 export default NewsView;
